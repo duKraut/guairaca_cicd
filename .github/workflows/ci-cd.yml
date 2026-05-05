@@ -1,0 +1,61 @@
+name: CI/CD Pipeline
+
+# Quando o pipeline será disparado
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Permissões necessárias para publicar no Github Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+# JOB 1 - CI - Integração Continua (Testes)
+  ci:
+    name: CI - Testes e Validação
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.jobs
+        uses: actions/setup-node@v4
+        with:
+          node-versions: '20'
+
+      - name: Instalar HTMLHint (linter de HTML)
+        run: npm install -g HTMLHint
+
+      - name: Validar Sintaxe do HTML
+        run: htmlhint index.html
+
+# JOB 2 - CD: Entrega Continua (Deploy)
+cd:
+  name: CD - Deploy no Github Pages
+  needs: ci
+  if: github.ref == 'refs/heads/main'
+  runs-on: ubuntu-latest
+
+  enviroment:
+    name: github-pages
+    url: ${{ steps.deployment.outputs.page_url }}
+
+  steps:
+    - name: Checkout de Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Github Pages
+      uses: actions/configure-pages@v4
+
+    - name: Empacotar artefato
+      uses: actions/upload-pagesartifact@v3
+      with:
+        path: '.'
+
+    - name: Publicar no Github pages
+      id: deployment
+      uses: actions/deploy-pages@v4
